@@ -1,0 +1,238 @@
+@page "{id:int}"
+@model Hospital.Pages.Doctor.VisitDetailModel
+@{
+    ViewData["Title"] = "Visit — " + Model.Visit.Patient?.FirstName + " " + Model.Visit.Patient?.LastName;
+    ViewData["Section"] = "Doctor";
+}
+
+<div class="d-flex align-items-center gap-3 mb-4">
+    <a asp-page="/Doctor/Patients" class="btn btn-sm btn-outline-secondary">&larr; Back</a>
+    <h5 class="mb-0">Patient Visit</h5>
+    <span class="badge bg-primary">@Model.Visit.Status</span>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <small class="text-muted d-block">Full Name</small>
+                <strong>@Model.Visit.Patient?.FirstName @Model.Visit.Patient?.LastName</strong>
+            </div>
+            <div class="col-md-2">
+                <small class="text-muted d-block">MRN</small>
+                <span class="badge bg-secondary">@Model.Visit.Patient?.MRN</span>
+            </div>
+            <div class="col-md-2">
+                <small class="text-muted d-block">Age</small>
+                <strong>@Model.PatientAge yrs</strong>
+            </div>
+            <div class="col-md-2">
+                <small class="text-muted d-block">Gender</small>
+                @Model.Visit.Patient?.Gender
+            </div>
+            <div class="col-md-2">
+                <small class="text-muted d-block">Blood Type</small>
+                @(string.IsNullOrEmpty(Model.Visit.Patient?.BloodType) ? "—" : Model.Visit.Patient.BloodType)
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted d-block">Allergies</small>
+                @(string.IsNullOrEmpty(Model.Visit.Patient?.Allergies) ? "None" : Model.Visit.Patient.Allergies)
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted d-block">Chief Complaint</small>
+                @Model.Visit.ChiefComplaint
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted d-block">Visit Date</small>
+                @Model.Visit.Date.ToString("dd/MM/yyyy HH:mm")
+            </div>
+        </div>
+    </div>
+</div>
+
+<form method="post" asp-route-id="@Model.Visit.Id">
+    @Html.AntiForgeryToken()
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold">Diagnosis</div>
+        <div class="card-body">
+            <textarea name="DiagnosisNotes" class="form-control" rows="4"
+                      placeholder="Write diagnosis notes here...">@Model.DiagnosisNotes</textarea>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <span class="fw-semibold">Prescription</span>
+            <button type="button" class="btn btn-sm btn-primary" onclick="addRow()">+ Add Medication</button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered mb-0" id="rxTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:36px">#</th>
+                            <th>Medication</th>
+                            <th style="width:110px">Form</th>
+                            <th style="width:120px">Frequency</th>
+                            <th style="width:110px">Duration</th>
+                            <th style="width:70px">Qty</th>
+                            <th style="width:110px">Notes</th>
+                            <th style="width:38px"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="rxBody">
+                        @for (int i = 0; i < Model.ExistingItems.Count; i++)
+                        {
+                            var item = Model.ExistingItems[i];
+                            <tr>
+                                <td class="text-center text-muted row-num">@(i + 1)</td>
+                                <td style="position:relative">
+                                    <input type="hidden" name="Items[@i].MedicationId" value="@item.MedicationId" class="med-id-input" />
+                                    <input type="text" class="form-control form-control-sm med-search"
+                                           value="@item.Medication?.Name @item.Medication?.Strength"
+                                           placeholder="Search medication..." autocomplete="off" />
+                                    <div class="med-dropdown list-group position-absolute z-3"
+                                         style="display:none;max-height:200px;overflow-y:auto;width:340px;top:100%;right:0;"></div>
+                                </td>
+                                <td>
+                                    <input type="text" name="Items[@i].DosageForm" class="form-control form-control-sm med-form"
+                                           value="@item.Medication?.DosageForm" readonly />
+                                </td>
+                                <td>
+                                    <select name="Items[@i].Frequency" class="form-select form-select-sm">
+                                        @foreach (var f in Hospital.Pages.Doctor.VisitDetailModel.FrequencyOptions)
+                                        {
+                                            <option value="@f" selected="@(item.Frequency == f)">@f</option>
+                                        }
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="text" name="Items[@i].Duration" class="form-control form-control-sm"
+                                           value="@item.Duration" placeholder="e.g. 5 days" />
+                                </td>
+                                <td>
+                                    <input type="number" name="Items[@i].Quantity" class="form-control form-control-sm"
+                                           value="@item.Quantity" min="1" />
+                                </td>
+                                <td>
+                                    <input type="text" name="Items[@i].Notes" class="form-control form-control-sm"
+                                           value="@item.Notes" />
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRow(this)">&#x2715;</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 flex-wrap">
+        <button type="submit" class="btn btn-success px-4">Save Prescription</button>
+        @if (Model.ExistingPrescriptionId.HasValue)
+        {
+            <a asp-page="/Pharmacy/PrintPrescription" asp-route-id="@Model.ExistingPrescriptionId"
+               class="btn btn-outline-primary" target="_blank">&#128438; Print Preview</a>
+        }
+    </div>
+</form>
+
+@section Scripts {
+<script>
+const FREQ_OPTIONS = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Hospital.Pages.Doctor.VisitDetailModel.FrequencyOptions));
+let rowCount = @Model.ExistingItems.Count;
+
+function addRow() {
+    const tbody = document.getElementById('rxBody');
+    const i = rowCount++;
+    const freqOpts = FREQ_OPTIONS.map(f => `<option value="${f}">${f}</option>`).join('');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td class="text-center text-muted row-num"></td>
+        <td style="position:relative">
+            <input type="hidden" name="Items[${i}].MedicationId" value="" class="med-id-input" />
+            <input type="text" class="form-control form-control-sm med-search"
+                   placeholder="Search medication..." autocomplete="off" />
+            <div class="med-dropdown list-group position-absolute z-3"
+                 style="display:none;max-height:200px;overflow-y:auto;width:340px;top:100%;right:0;"></div>
+        </td>
+        <td><input type="text" name="Items[${i}].DosageForm" class="form-control form-control-sm med-form" readonly /></td>
+        <td><select name="Items[${i}].Frequency" class="form-select form-select-sm">${freqOpts}</select></td>
+        <td><input type="text" name="Items[${i}].Duration" class="form-control form-control-sm" placeholder="e.g. 5 days" /></td>
+        <td><input type="number" name="Items[${i}].Quantity" class="form-control form-control-sm" value="1" min="1" /></td>
+        <td><input type="text" name="Items[${i}].Notes" class="form-control form-control-sm" /></td>
+        <td class="text-center">
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRow(this)">&#x2715;</button>
+        </td>`;
+    tbody.appendChild(tr);
+    reNumber();
+    wireSearch(tr.querySelector('.med-search'));
+}
+
+function removeRow(btn) {
+    btn.closest('tr').remove();
+    reNumber();
+    reIndex();
+}
+
+function reNumber() {
+    document.querySelectorAll('#rxBody tr').forEach((tr, idx) => {
+        tr.querySelector('.row-num').textContent = idx + 1;
+    });
+}
+
+function reIndex() {
+    document.querySelectorAll('#rxBody tr').forEach((tr, idx) => {
+        tr.querySelectorAll('[name]').forEach(el => {
+            el.name = el.name.replace(/Items\[\d+\]/, `Items[${idx}]`);
+        });
+    });
+}
+
+function wireSearch(input) {
+    const dropdown = input.parentElement.querySelector('.med-dropdown');
+    const idInput  = input.parentElement.querySelector('.med-id-input');
+    const formInput = input.closest('tr').querySelector('.med-form');
+    let timer;
+
+    input.addEventListener('input', () => {
+        clearTimeout(timer);
+        const q = input.value.trim();
+        if (q.length < 2) { dropdown.style.display = 'none'; return; }
+        timer = setTimeout(() => fetchMeds(q, dropdown, idInput, formInput, input), 250);
+    });
+
+    input.addEventListener('blur', () => {
+        setTimeout(() => { dropdown.style.display = 'none'; }, 200);
+    });
+}
+
+async function fetchMeds(q, dropdown, idInput, formInput, searchInput) {
+    const res  = await fetch(`?handler=SearchMedications&q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    dropdown.innerHTML = '';
+    if (!data.length) { dropdown.style.display = 'none'; return; }
+    data.forEach(m => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'list-group-item list-group-item-action py-1 px-2 small';
+        btn.innerHTML = `<strong>${m.name}</strong> ${m.strength}
+                         <span class="text-muted ms-1">${m.dosageForm} &mdash; ${m.category}</span>`;
+        btn.onclick = () => {
+            idInput.value     = m.id;
+            searchInput.value = `${m.name} ${m.strength}`;
+            formInput.value   = m.dosageForm;
+            dropdown.style.display = 'none';
+        };
+        dropdown.appendChild(btn);
+    });
+    dropdown.style.display = 'block';
+}
+
+// Wire search on existing rows
+document.querySelectorAll('.med-search').forEach(wireSearch);
+</script>
+}

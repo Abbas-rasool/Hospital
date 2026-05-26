@@ -22,9 +22,42 @@ public static class DbInitializer
         if (!context.Medications.Any())
         {
             context.Medications.AddRange(SeedMedications());
+            context.SaveChanges();
         }
 
-        context.SaveChanges();
+        if (!context.Patients.Any())
+        {
+            var registryUser = context.Users.First(u => u.Role == UserRole.Registry);
+            var doctor       = context.Users.First(u => u.Role == UserRole.Doctor);
+
+            var patient = new Patient
+            {
+                MRN          = "MRN-0001",
+                FirstName    = "شکریه",
+                LastName     = "احمدی",
+                FatherName   = "محمد",
+                DateOfBirth  = new DateTime(1997, 1, 1),
+                Gender       = "Female",
+                Phone        = "0700000000",
+                Address      = "Kabul",
+                BloodType    = "O+",
+                Allergies    = "",
+                NationalId   = "12345678",
+                CreatedByUserId = registryUser.Id
+            };
+            context.Patients.Add(patient);
+            context.SaveChanges();
+
+            context.Visits.Add(new Visit
+            {
+                PatientId      = patient.Id,
+                RegistryUserId = registryUser.Id,
+                DoctorId       = doctor.Id,
+                ChiefComplaint = "General check-up",
+                Status         = VisitStatus.Registered
+            });
+            context.SaveChanges();
+        }
     }
 
     private static IEnumerable<Medication> SeedMedications() => new[]

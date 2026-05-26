@@ -1,0 +1,199 @@
+@page "{id:int}"
+@model Hospital.Pages.Pharmacy.PrintPrescriptionModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prescription #@Model.Prescription.Id</title>
+    <style>
+        /* ── Screen toolbar (hidden on print) ──────────────────────── */
+        body { margin: 0; background: #f0f2f5; font-family: 'Times New Roman', 'Noto Serif', serif; }
+
+        .toolbar {
+            background: #1a4f8a; color: white;
+            padding: .75rem 1.5rem;
+            display: flex; gap: 1rem; align-items: center;
+        }
+        .toolbar button { border: none; border-radius: 4px; padding: .4rem 1rem; cursor: pointer; font-size: .9rem; }
+        .btn-print { background: #28a745; color: white; }
+        .btn-back  { background: rgba(255,255,255,.15); color: white; }
+
+        .page-wrap { display: flex; justify-content: center; padding: 1.5rem; }
+
+        /* ── A4 prescription page ──────────────────────────────────── */
+        .rx-page {
+            width: 21cm;
+            height: 29.7cm;
+            background: white;
+            position: relative;
+            box-shadow: 0 4px 24px rgba(0,0,0,.15);
+            overflow: hidden;
+        }
+
+        /* ── Positioned fields (matching docx text-box positions) ──── */
+        /* These overlay the pre-printed hospital letterhead at exact positions */
+        .rx-date   { position: absolute; left: 1.61cm; top: 0.50cm; font-size: 9pt; font-weight: bold; }
+        .rx-age    { position: absolute; left: 7.50cm; top: 0.48cm; font-size: 9pt; font-weight: bold; }
+        .rx-name   { position: absolute; left: 10.79cm; top: 0.48cm; font-size: 9pt; font-weight: bold; }
+        .rx-doctor { position: absolute; left: 1.61cm; top: 18.30cm; font-size: 9pt; font-weight: bold; }
+        .rx-diagnosis {
+            position: absolute; left: 6.07cm; top: 17.78cm;
+            width: 8cm; font-size: 9pt;
+            line-height: 1.3;
+        }
+
+        /* ── Medication table ──────────────────────────────────────── */
+        .rx-table-wrap {
+            position: absolute;
+            left: 6.22cm;
+            top: 9.24cm;
+            width: 12.55cm;
+            direction: rtl;
+        }
+
+        .rx-table {
+            width: 12.55cm;
+            border-collapse: collapse;
+            table-layout: fixed;
+            font-size: 8.5pt;
+            direction: rtl;
+        }
+
+        /* Column widths — right to left (RTL): QTY | FREQ | NAME | TYPE | P */
+        /* In HTML RTL table, first <th> appears on the RIGHT visually */
+        .rx-table .col-qty  { width: 0.95cm; } /* rightmost */
+        .rx-table .col-freq { width: 2.07cm; }
+        .rx-table .col-name { width: 6.83cm; }
+        .rx-table .col-type { width: 1.75cm; }
+        .rx-table .col-p    { width: 0.95cm; } /* leftmost */
+
+        .rx-table th, .rx-table td {
+            border: 0.5pt solid #000;
+            padding: 0 2pt;
+            height: 0.76cm;
+            vertical-align: middle;
+            text-align: center;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        .rx-table .col-name { text-align: right; padding-right: 3pt; }
+        .rx-table th { font-size: 7.5pt; font-weight: bold; background: transparent; }
+
+        /* Empty rows (blank lines for handwriting) */
+        .rx-table tr.empty-row td { background: transparent; }
+
+        /* ── Print overrides ────────────────────────────────────────── */
+        @@media print {
+            .toolbar { display: none !important; }
+            .page-wrap { padding: 0; background: none; }
+            body { background: none; }
+
+            @@page {
+                size: A4;
+                margin: 0;
+            }
+
+            .rx-page {
+                box-shadow: none;
+                page-break-after: always;
+            }
+        }
+    </style>
+</head>
+<body>
+
+@* Screen toolbar  *@
+<div class="toolbar no-print">
+    <button class="btn-back" onclick="history.back()">&#8592; Back</button>
+    <button class="btn-print" onclick="markAndPrint()">&#128438; Print</button>
+    @if (!Model.Prescription.IsPrinted)
+    {
+        <span style="opacity:.75; font-size:.85rem;">Not yet printed</span>
+    }
+    else
+    {
+        <span style="color:#90ee90; font-size:.85rem;">
+            Printed on @Model.Prescription.PrintedAt?.ToString("dd/MM/yyyy HH:mm")
+        </span>
+    }
+</div>
+
+@* A4 prescription page  *@
+<div class="page-wrap">
+<div class="rx-page">
+
+    @* ① Date, Age, Name — overlay on pre-printed header  *@
+    <div class="rx-date">@Model.SolarDate</div>
+    <div class="rx-age">@Model.PatientAge ساله</div>
+    <div class="rx-name">@Model.Prescription.Visit?.Patient?.FirstName @Model.Prescription.Visit?.Patient?.LastName</div>
+
+    @* ② Medication table  *@
+    <div class="rx-table-wrap">
+        <table class="rx-table">
+            <colgroup>
+                <col class="col-qty" />
+                <col class="col-freq" />
+                <col class="col-name" />
+                <col class="col-type" />
+                <col class="col-p" />
+            </colgroup>
+            <thead>
+                <tr>
+                    <th class="col-qty">QTY</th>
+                    <th class="col-freq">FREQUENCY</th>
+                    <th class="col-name">MEDICINE NAME</th>
+                    <th class="col-type">TYPE</th>
+                    <th class="col-p">NO</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{
+                    int rowNum = 1;
+                    int totalRows = 7; // match the template's pre-printed row count
+                    var items = Model.Prescription.Items.ToList();
+                }
+                @foreach (var item in items)
+                {
+                    <tr>
+                        <td class="col-qty">@item.Frequency</td>
+                        <td class="col-freq">@item.Duration</td>
+                        <td class="col-name">@item.Medication?.Name @item.Medication?.Strength</td>
+                        <td class="col-type">@item.Medication?.DosageForm</td>
+                        <td class="col-p">@(rowNum++)</td>
+                    </tr>
+                }
+                @for (int blank = items.Count; blank < totalRows; blank++)
+                {
+                    <tr class="empty-row">
+                        <td></td><td></td><td></td><td></td><td></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @* ③ Diagnosis + Doctor — lower section  *@
+    <div class="rx-diagnosis">@Model.DiagnosisNotes</div>
+    <div class="rx-doctor">@Model.Prescription.CreatedBy?.FullName</div>
+
+</div>
+</div>
+
+<script>
+async function markAndPrint() {
+    // Mark as printed on the server, then print
+    await fetch('?handler=MarkPrinted', {
+        method: 'POST',
+        headers: { 'RequestVerificationToken': document.querySelector('[name=__RequestVerificationToken]')?.value ?? '' }
+    });
+    window.print();
+}
+</script>
+
+@Html.AntiForgeryToken()
+</body>
+</html>
