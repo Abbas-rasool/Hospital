@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] — Hospital</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background:#1a4f8a;">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand fw-bold" asp-page="/Index">&#x2764; Hospital System</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navMain">
+                <ul class="navbar-nav me-auto">
+                    @if (User.IsInRole("Admin") || User.IsInRole("Registry"))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewData["Section"]?.ToString() == "Registry" ? "active fw-semibold" : "")"
+                               asp-page="/Registry/Patients">Registry</a>
+                        </li>
+                    }
+                    @if (User.IsInRole("Admin") || User.IsInRole("Doctor"))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewData["Section"]?.ToString() == "Doctor" ? "active fw-semibold" : "")"
+                               asp-page="/Doctor/Patients">Doctor</a>
+                        </li>
+                    }
+                    @if (User.IsInRole("Admin") || User.IsInRole("Pharmacy"))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewData["Section"]?.ToString() == "Pharmacy" ? "active fw-semibold" : "")"
+                               asp-page="/Pharmacy/Prescriptions">Pharmacy</a>
+                        </li>
+                    }
+                    @if (User.IsInRole("Admin") || User.IsInRole("Lab"))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewData["Section"]?.ToString() == "Lab" ? "active fw-semibold" : "")"
+                               asp-page="/Lab/Index">Lab</a>
+                        </li>
+                    }
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewData["Section"]?.ToString() == "Admin" ? "active fw-semibold" : "")"
+                               asp-page="/Admin/Dashboard">Admin</a>
+                        </li>
+                    }
+                </ul>
+                <ul class="navbar-nav align-items-center gap-2">
+                    <li class="nav-item">
+                        <span class="badge bg-light text-primary px-3 py-2">
+                            @User.Identity?.Name
+                            &nbsp;|&nbsp;
+                            @User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value
+                        </span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-sm btn-outline-light" asp-page="/Logout">Sign Out</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container-fluid px-4 py-4">
+        @RenderBody()
+    </main>
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

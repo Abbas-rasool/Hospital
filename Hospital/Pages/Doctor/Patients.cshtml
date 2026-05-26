@@ -1,0 +1,57 @@
+@page
+@model Hospital.Pages.Doctor.PatientsModel
+@{
+    ViewData["Title"] = "Doctor — Patients";
+    ViewData["Section"] = "Doctor";
+}
+
+<h4 class="mb-4">Patient Queue</h4>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>MRN</th>
+                    <th>Patient Name</th>
+                    <th>Chief Complaint</th>
+                    <th>Visit Date</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var v in Model.Visits)
+                {
+                    <tr>
+                        <td><span class="badge bg-secondary">@v.Patient?.MRN</span></td>
+                        <td class="fw-semibold">@v.Patient?.FirstName @v.Patient?.LastName</td>
+                        <td>@v.ChiefComplaint</td>
+                        <td class="text-muted small">@v.Date.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>
+                            @{
+                                var badgeClass = v.Status switch
+                                {
+                                    Hospital.Models.VisitStatus.Registered        => "bg-warning text-dark",
+                                    Hospital.Models.VisitStatus.WithDoctor        => "bg-info text-dark",
+                                    Hospital.Models.VisitStatus.PrescriptionReady => "bg-success",
+                                    Hospital.Models.VisitStatus.Completed         => "bg-secondary",
+                                    _                                             => "bg-secondary"
+                                };
+                            }
+                            <span class="badge @badgeClass">@v.Status</span>
+                        </td>
+                        <td>
+                            <a asp-page="/Doctor/VisitDetail" asp-route-id="@v.Id"
+                               class="btn btn-sm btn-outline-primary">Open</a>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Visits.Any())
+                {
+                    <tr><td colspan="6" class="text-center text-muted py-4">No patients in queue.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

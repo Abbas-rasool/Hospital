@@ -1,0 +1,22 @@
+# Build outputs
+bin/
+obj/
+*.user
+
+# Database file (contains patient data — do not commit)
+*.db
+*.db-shm
+*.db-wal
+
+# ASP.NET Core secrets
+appsettings.Development.json
+secrets.json
+
+# VS / Rider
+.vs/
+.idea/
+*.suo
+
+# OS
+.DS_Store
+Thumbs.db

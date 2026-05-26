@@ -1,0 +1,86 @@
+@page
+@model Hospital.Pages.Admin.DashboardModel
+@{
+    ViewData["Title"] = "Admin Dashboard";
+    ViewData["Section"] = "Admin";
+}
+
+<h4 class="mb-4">Admin Dashboard</h4>
+
+<div class="row g-3">
+    <div class="col-md-3">
+        <div class="card text-center border-0 shadow-sm">
+            <div class="card-body py-4">
+                <div style="font-size:2rem;">&#x1F464;</div>
+                <h5 class="mt-2">@Model.TotalUsers</h5>
+                <small class="text-muted">System Users</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center border-0 shadow-sm">
+            <div class="card-body py-4">
+                <div style="font-size:2rem;">&#x1F9D1;&#x200D;&#x2695;&#xFE0F;</div>
+                <h5 class="mt-2">@Model.TotalPatients</h5>
+                <small class="text-muted">Total Patients</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center border-0 shadow-sm">
+            <div class="card-body py-4">
+                <div style="font-size:2rem;">&#x1F4CB;</div>
+                <h5 class="mt-2">@Model.TodayVisits</h5>
+                <small class="text-muted">Visits Today</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center border-0 shadow-sm">
+            <div class="card-body py-4">
+                <div style="font-size:2rem;">&#x1F48A;</div>
+                <h5 class="mt-2">@Model.TotalMedications</h5>
+                <small class="text-muted">Medications</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mt-4">
+    <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
+        System Users
+        <a asp-page="/Admin/Users" class="btn btn-sm btn-primary">Manage Users</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Full Name</th>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var u in Model.Users)
+                {
+                    <tr>
+                        <td>@u.FullName</td>
+                        <td class="text-muted">@u.Username</td>
+                        <td><span class="badge bg-primary">@u.Role</span></td>
+                        <td>
+                            @if (u.IsActive)
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Inactive</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
