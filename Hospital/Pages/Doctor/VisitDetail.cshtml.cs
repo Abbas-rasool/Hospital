@@ -54,7 +54,7 @@ public class VisitDetailModel : PageModel
                 (m.Name.ToLower().Contains(lower) ||
                  m.GenericName.ToLower().Contains(lower) ||
                  m.Category.ToLower().Contains(lower)))
-            .Select(m => new { m.Id, m.Name, m.GenericName, m.Strength, m.DosageForm, m.Category })
+            .Select(m => new { id = m.Id, name = m.Name, genericName = m.GenericName, strength = m.Strength, dosageForm = m.DosageForm, category = m.Category })
             .Take(15)
             .ToListAsync();
 

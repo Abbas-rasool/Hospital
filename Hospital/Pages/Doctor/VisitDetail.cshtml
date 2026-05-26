@@ -87,13 +87,11 @@
                             var item = Model.ExistingItems[i];
                             <tr>
                                 <td class="text-center text-muted row-num">@(i + 1)</td>
-                                <td style="position:relative">
+                                <td>
                                     <input type="hidden" name="Items[@i].MedicationId" value="@item.MedicationId" class="med-id-input" />
                                     <input type="text" class="form-control form-control-sm med-search"
                                            value="@item.Medication?.Name @item.Medication?.Strength"
                                            placeholder="Search medication..." autocomplete="off" />
-                                    <div class="med-dropdown list-group position-absolute z-3"
-                                         style="display:none;max-height:200px;overflow-y:auto;width:340px;top:100%;right:0;"></div>
                                 </td>
                                 <td>
                                     <input type="text" name="Items[@i].DosageForm" class="form-control form-control-sm med-form"
@@ -141,23 +139,55 @@
 </form>
 
 @section Scripts {
+<style>
+#med-global-dropdown {
+    position: fixed;
+    z-index: 9999;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: .25rem;
+    max-height: 220px;
+    overflow-y: auto;
+    width: 340px;
+    display: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,.15);
+}
+</style>
+
+<div id="med-global-dropdown" class="list-group"></div>
+
 <script>
 const FREQ_OPTIONS = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Hospital.Pages.Doctor.VisitDetailModel.FrequencyOptions));
 let rowCount = @Model.ExistingItems.Count;
 
+const globalDropdown = document.getElementById('med-global-dropdown');
+let activeIdInput = null, activeFormInput = null, activeSearchInput = null;
+
+// Close dropdown when clicking outside
+document.addEventListener('click', e => {
+    if (!globalDropdown.contains(e.target) && e.target !== activeSearchInput) {
+        globalDropdown.style.display = 'none';
+    }
+});
+
+function positionDropdown(input) {
+    const rect = input.getBoundingClientRect();
+    globalDropdown.style.top  = (rect.bottom + window.scrollY) + 'px';
+    globalDropdown.style.left = rect.left + 'px';
+    globalDropdown.style.width = Math.max(rect.width, 340) + 'px';
+}
+
 function addRow() {
     const tbody = document.getElementById('rxBody');
-    const i = rowCount++;
     const freqOpts = FREQ_OPTIONS.map(f => `<option value="${f}">${f}</option>`).join('');
     const tr = document.createElement('tr');
+    const i = rowCount++;
     tr.innerHTML = `
         <td class="text-center text-muted row-num"></td>
-        <td style="position:relative">
+        <td>
             <input type="hidden" name="Items[${i}].MedicationId" value="" class="med-id-input" />
             <input type="text" class="form-control form-control-sm med-search"
                    placeholder="Search medication..." autocomplete="off" />
-            <div class="med-dropdown list-group position-absolute z-3"
-                 style="display:none;max-height:200px;overflow-y:auto;width:340px;top:100%;right:0;"></div>
         </td>
         <td><input type="text" name="Items[${i}].DosageForm" class="form-control form-control-sm med-form" readonly /></td>
         <td><select name="Items[${i}].Frequency" class="form-select form-select-sm">${freqOpts}</select></td>
@@ -174,6 +204,7 @@ function addRow() {
 
 function removeRow(btn) {
     btn.closest('tr').remove();
+    globalDropdown.style.display = 'none';
     reNumber();
     reIndex();
 }
@@ -190,47 +221,61 @@ function reIndex() {
             el.name = el.name.replace(/Items\[\d+\]/, `Items[${idx}]`);
         });
     });
+    rowCount = document.querySelectorAll('#rxBody tr').length;
 }
 
 function wireSearch(input) {
-    const dropdown = input.parentElement.querySelector('.med-dropdown');
-    const idInput  = input.parentElement.querySelector('.med-id-input');
+    const idInput   = input.closest('td').querySelector('.med-id-input');
     const formInput = input.closest('tr').querySelector('.med-form');
     let timer;
+
+    input.addEventListener('focus', () => {
+        activeIdInput     = idInput;
+        activeFormInput   = formInput;
+        activeSearchInput = input;
+    });
 
     input.addEventListener('input', () => {
         clearTimeout(timer);
         const q = input.value.trim();
-        if (q.length < 2) { dropdown.style.display = 'none'; return; }
-        timer = setTimeout(() => fetchMeds(q, dropdown, idInput, formInput, input), 250);
+        if (q.length < 2) { globalDropdown.style.display = 'none'; return; }
+        timer = setTimeout(() => fetchMeds(q, input), 250);
     });
 
-    input.addEventListener('blur', () => {
-        setTimeout(() => { dropdown.style.display = 'none'; }, 200);
+    input.addEventListener('keydown', e => {
+        if (e.key === 'Escape') globalDropdown.style.display = 'none';
     });
 }
 
-async function fetchMeds(q, dropdown, idInput, formInput, searchInput) {
+async function fetchMeds(q, searchInput) {
     const res  = await fetch(`?handler=SearchMedications&q=${encodeURIComponent(q)}`);
     const data = await res.json();
-    dropdown.innerHTML = '';
-    if (!data.length) { dropdown.style.display = 'none'; return; }
+    globalDropdown.innerHTML = '';
+    if (!data.length) { globalDropdown.style.display = 'none'; return; }
     data.forEach(m => {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'list-group-item list-group-item-action py-1 px-2 small';
-        btn.innerHTML = `<strong>${m.name}</strong> ${m.strength}
+        btn.innerHTML = `<strong>${m.name}</strong> <span class="text-muted">${m.strength}</span>
                          <span class="text-muted ms-1">${m.dosageForm} &mdash; ${m.category}</span>`;
+        btn.onmousedown = e => e.preventDefault(); // prevent blur before click
         btn.onclick = () => {
-            idInput.value     = m.id;
-            searchInput.value = `${m.name} ${m.strength}`;
-            formInput.value   = m.dosageForm;
-            dropdown.style.display = 'none';
+            activeIdInput.value     = m.id;
+            activeSearchInput.value = `${m.name} ${m.strength}`;
+            activeFormInput.value   = m.dosageForm;
+            globalDropdown.style.display = 'none';
         };
-        dropdown.appendChild(btn);
+        globalDropdown.appendChild(btn);
     });
-    dropdown.style.display = 'block';
+    positionDropdown(searchInput);
+    globalDropdown.style.display = 'block';
 }
+
+// Reposition dropdown on scroll/resize
+window.addEventListener('scroll', () => {
+    if (globalDropdown.style.display !== 'none' && activeSearchInput)
+        positionDropdown(activeSearchInput);
+}, true);
 
 // Wire search on existing rows
 document.querySelectorAll('.med-search').forEach(wireSearch);
