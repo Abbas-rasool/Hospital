@@ -19,7 +19,7 @@ public class VisitDetailModel : PageModel
     public int? ExistingPrescriptionId { get; set; }
     public List<PrescriptionItem> ExistingItems { get; set; } = new();
 
-    [BindProperty] public string DiagnosisNotes { get; set; } = string.Empty;
+    [BindProperty] public string? DiagnosisNotes { get; set; }
     [BindProperty] public List<RxItemInput> Items { get; set; } = new();
 
     public static readonly string[] FrequencyOptions =
@@ -72,7 +72,7 @@ public class VisitDetailModel : PageModel
         var existingDx = visit.Diagnoses.OrderByDescending(d => d.CreatedAt).FirstOrDefault();
         if (existingDx != null)
         {
-            existingDx.Notes = DiagnosisNotes;
+            existingDx.Notes = DiagnosisNotes ?? string.Empty;
         }
         else if (!string.IsNullOrWhiteSpace(DiagnosisNotes))
         {
@@ -100,7 +100,7 @@ public class VisitDetailModel : PageModel
             {
                 VisitId         = visit.Id,
                 CreatedByUserId = userId,
-                Notes           = DiagnosisNotes,
+                Notes           = DiagnosisNotes ?? string.Empty,
                 Items           = validItems.Select((item, idx) => new PrescriptionItem
                 {
                     MedicationId = item.MedicationId,
@@ -151,6 +151,6 @@ public class VisitDetailModel : PageModel
         }
 
         var dx = visit.Diagnoses.OrderByDescending(d => d.CreatedAt).FirstOrDefault();
-        if (dx != null) DiagnosisNotes = dx.Notes;
+        if (dx != null) DiagnosisNotes = dx.Notes ?? string.Empty;
     }
 }
