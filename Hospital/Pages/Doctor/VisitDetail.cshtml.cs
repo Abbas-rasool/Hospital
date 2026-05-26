@@ -117,7 +117,11 @@ public class VisitDetailModel : PageModel
         }
 
         await _db.SaveChangesAsync();
-        return RedirectToPage("/Doctor/Patients");
+
+        // Redirect each role back to their own section
+        return User.IsInRole("Pharmacy")
+            ? RedirectToPage("/Pharmacy/Prescriptions")
+            : RedirectToPage("/Doctor/Patients");
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

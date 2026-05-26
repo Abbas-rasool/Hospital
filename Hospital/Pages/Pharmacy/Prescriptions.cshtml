@@ -1,54 +1,103 @@
 @page
 @model Hospital.Pages.Pharmacy.PrescriptionsModel
 @{
-    ViewData["Title"] = "Pharmacy — Prescriptions";
+    ViewData["Title"] = "Pharmacy";
     ViewData["Section"] = "Pharmacy";
 }
 
-<h4 class="mb-4">Prescription Queue</h4>
+<h4 class="mb-4">Pharmacy</h4>
+
+@if (Model.ReadyVisits.Any())
+{
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold d-flex align-items-center gap-2">
+            <span class="badge bg-success">&#x2713;</span>
+            Ready to Print
+            <span class="badge bg-secondary ms-1">@Model.ReadyVisits.Count</span>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Patient</th>
+                        <th>MRN</th>
+                        <th>Prescribed By</th>
+                        <th>Date</th>
+                        <th>Printed</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var v in Model.ReadyVisits)
+                    {
+                        var rx = v.Prescriptions.OrderByDescending(p => p.CreatedAt).First();
+                        <tr>
+                            <td class="fw-semibold">@v.Patient?.FirstName @v.Patient?.LastName</td>
+                            <td><span class="badge bg-secondary">@v.Patient?.MRN</span></td>
+                            <td class="text-muted small">@rx.CreatedBy?.FullName</td>
+                            <td class="text-muted small">@rx.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>
+                                @if (rx.IsPrinted)
+                                {
+                                    <span class="badge bg-success">Printed</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                }
+                            </td>
+                            <td class="d-flex gap-1">
+                                <a asp-page="/Doctor/VisitDetail" asp-route-id="@v.Id"
+                                   class="btn btn-sm btn-outline-secondary">Edit Rx</a>
+                                <a asp-page="/Pharmacy/PrintPrescription" asp-route-id="@rx.Id"
+                                   class="btn btn-sm btn-primary" target="_blank">Print</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
 
 <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white fw-semibold d-flex align-items-center gap-2">
+        <span class="badge bg-warning text-dark">&#9998;</span>
+        Active Visits — Write Prescription
+        <span class="badge bg-secondary ms-1">@Model.ActiveVisits.Count</span>
+    </div>
     <div class="card-body p-0">
         <table class="table table-hover mb-0">
             <thead class="table-light">
                 <tr>
-                    <th>#</th>
                     <th>Patient</th>
                     <th>MRN</th>
-                    <th>Prescribed By</th>
-                    <th>Date</th>
-                    <th>Status</th>
+                    <th>Chief Complaint</th>
+                    <th>Doctor</th>
+                    <th>Visit Date</th>
                     <th></th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var rx in Model.Prescriptions)
+                @foreach (var v in Model.ActiveVisits)
                 {
                     <tr>
-                        <td class="text-muted small">@rx.Id</td>
-                        <td class="fw-semibold">@rx.Visit?.Patient?.FirstName @rx.Visit?.Patient?.LastName</td>
-                        <td><span class="badge bg-secondary">@rx.Visit?.Patient?.MRN</span></td>
-                        <td>@rx.CreatedBy?.FullName</td>
-                        <td class="text-muted small">@rx.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td class="fw-semibold">@v.Patient?.FirstName @v.Patient?.LastName</td>
+                        <td><span class="badge bg-secondary">@v.Patient?.MRN</span></td>
+                        <td>@v.ChiefComplaint</td>
+                        <td class="text-muted small">@(v.Doctor?.FullName ?? "—")</td>
+                        <td class="text-muted small">@v.Date.ToString("dd/MM/yyyy")</td>
                         <td>
-                            @if (rx.IsPrinted)
-                            {
-                                <span class="badge bg-success">Printed</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-warning text-dark">Pending</span>
-                            }
-                        </td>
-                        <td>
-                            <a asp-page="/Pharmacy/PrintPrescription" asp-route-id="@rx.Id"
-                               class="btn btn-sm btn-outline-primary">View / Print</a>
+                            <a asp-page="/Doctor/VisitDetail" asp-route-id="@v.Id"
+                               class="btn btn-sm btn-outline-primary">Write / Edit Rx</a>
                         </td>
                     </tr>
                 }
-                @if (!Model.Prescriptions.Any())
+                @if (!Model.ActiveVisits.Any())
                 {
-                    <tr><td colspan="7" class="text-center text-muted py-4">No prescriptions pending.</td></tr>
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">No active visits.</td>
+                    </tr>
                 }
             </tbody>
         </table>
