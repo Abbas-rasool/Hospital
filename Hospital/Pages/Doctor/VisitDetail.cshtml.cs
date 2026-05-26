@@ -27,12 +27,12 @@ public class VisitDetailModel : PageModel
 
     public class RxItemInput
     {
-        public int MedicationId { get; set; }
-        public string DosageForm { get; set; } = string.Empty;
-        public string Frequency  { get; set; } = string.Empty;
-        public string Duration   { get; set; } = string.Empty;
-        public int    Quantity   { get; set; } = 1;
-        public string Notes      { get; set; } = string.Empty;
+        public int     MedicationId { get; set; }
+        public string? DosageForm   { get; set; }
+        public string? Frequency    { get; set; }
+        public string? Duration     { get; set; }
+        public int     Quantity     { get; set; } = 1;
+        public string? Notes        { get; set; }
     }
 
     public async Task<IActionResult> OnGetAsync(int id)
@@ -104,11 +104,11 @@ public class VisitDetailModel : PageModel
                 Items           = validItems.Select((item, idx) => new PrescriptionItem
                 {
                     MedicationId = item.MedicationId,
-                    Dosage       = item.DosageForm,
-                    Frequency    = item.Frequency,
-                    Duration     = item.Duration,
+                    Dosage       = item.DosageForm  ?? string.Empty,
+                    Frequency    = item.Frequency   ?? string.Empty,
+                    Duration     = item.Duration    ?? string.Empty,
                     Quantity     = item.Quantity,
-                    Notes        = item.Notes
+                    Notes        = item.Notes       ?? string.Empty
                 }).ToList()
             });
 
